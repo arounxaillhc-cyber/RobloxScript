@@ -7,7 +7,7 @@ if game.PlaceId ~= 113290951185459 then
     error("[Anime Dice] This script only works in Anime Dice.", 0)
 end
 
-local AUTOEXEC_CODE = [[loadstring(game:HttpGet("PASTE URL"))()]]
+local AUTOEXEC_CODE = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/arounxaillhc-cyber/RobloxScript/refs/heads/main/AnimeDice.lua"))()]]
 
 local function armReexec()
     local q = queue_on_teleport or queueonteleport
