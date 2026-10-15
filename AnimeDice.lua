@@ -5,9 +5,6 @@ local LocalPlayer = Players.LocalPlayer
 
 local CorrectPlaceId = 113290951185459
 
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PlaceIdChecker"
 ScreenGui.ResetOnSpawn = false
@@ -31,7 +28,7 @@ Label.TextSize = 16
 Label.Font = Enum.Font.GothamBold
 Label.Parent = Frame
 
-ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 if game.PlaceId ~= CorrectPlaceId then
     Label.Text = "PLACE ID INCORRECT"
