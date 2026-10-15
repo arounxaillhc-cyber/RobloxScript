@@ -6,17 +6,6 @@ local LocalPlayer = Players.LocalPlayer
 if game.PlaceId ~= 113290951185459 then
     error("[Anime Dice] This script only works in Anime Dice.", 0)
 end
-
-local AUTOEXEC_CODE = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/arounxaillhc-cyber/RobloxScript/refs/heads/main/AnimeDice.lua"))()]]
-
-local function armReexec()
-    local q = queue_on_teleport or queueonteleport
-    if typeof(q) == "function" then
-        pcall(q, AUTOEXEC_CODE)
-    end
-end
-pcall(armReexec)
-
 local Network = require(RS.Packages.Network)
 local DC = require(RS.Framework.Features.Data.DataController)
 local PlotConfig = require(RS.Framework.Features.Plot.PlotConfig)
