@@ -3,19 +3,51 @@ local RS = game:GetService("ReplicatedStorage")
 local TS = game:GetService("TeleportService")
 local LocalPlayer = Players.LocalPlayer
 
-if game.PlaceId ~= 113290951185459 then
-    error("[Anime Dice] This script only works in Anime Dice.", 0)
+local CorrectPlaceId = 113290951185459
+
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PlaceIdChecker"
+ScreenGui.ResetOnSpawn = false
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 260, 0, 75)
+Frame.Position = UDim2.new(0.5, -130, 0.1, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = Frame
+
+local Label = Instance.new("TextLabel")
+Label.Size = UDim2.new(1, 0, 1, 0)
+Label.BackgroundTransparency = 1
+Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+Label.TextSize = 16
+Label.Font = Enum.Font.GothamBold
+Label.Parent = Frame
+
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+
+if game.PlaceId ~= CorrectPlaceId then
+    Label.Text = "PLACE ID INCORRECT"
+    Label.TextColor3 = Color3.fromRGB(255, 75, 75)
+
+    task.wait(2)
+    ScreenGui:Destroy()
+
+    return
 end
 
-local AUTOEXEC_CODE = [[loadstring(game:HttpGet("https://raw.githubusercontent.com/arounxaillhc-cyber/RobloxScript/refs/heads/main/AnimeDice.lua"))()]]
+Label.Text = "PLACE ID VERIFIED"
+Label.TextColor3 = Color3.fromRGB(75, 255, 130)
 
-local function armReexec()
-    local q = queue_on_teleport or queueonteleport
-    if typeof(q) == "function" then
-        pcall(q, AUTOEXEC_CODE)
-    end
-end
-pcall(armReexec)
+task.wait(2)
+ScreenGui:Destroy()
 
 local Network = require(RS.Packages.Network)
 local DC = require(RS.Framework.Features.Data.DataController)
