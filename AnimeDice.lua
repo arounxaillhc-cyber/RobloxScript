@@ -3,9 +3,6 @@ local RS = game:GetService("ReplicatedStorage")
 local TS = game:GetService("TeleportService")
 local LocalPlayer = Players.LocalPlayer
 
-if game.PlaceId ~= 113290951185459 then
-    error("[Anime Dice] This script only works in Anime Dice.", 0)
-end
 local Network = require(RS.Packages.Network)
 local DC = require(RS.Framework.Features.Data.DataController)
 local PlotConfig = require(RS.Framework.Features.Plot.PlotConfig)
@@ -338,167 +335,94 @@ task.spawn(function()
 end)
 
 local towerNames = { "Dragon Tower", "Cursed Tower", "Pirate Tower", "Hidden Leaf Tower", "Infinity Tower" }
-
 pcall(function()
-local all = TowersMod.GetAll()
-local tmp = {}
-
-for k in pairs(all) do
-    table.insert(tmp, k)
-end
-
-table.sort(tmp, function(a, b)
-    local oa, ob = 99, 99
-    pcall(function() oa = TowersMod.Get(a).order or 99 end)
-    pcall(function() ob = TowersMod.Get(b).order or 99 end)
-    return oa < ob
+    local all = TowersMod.GetAll()
+    local tmp = {}
+    for k in pairs(all) do table.insert(tmp, k) end
+    table.sort(tmp, function(a, b)
+        local oa, ob = 99, 99
+        pcall(function() oa = TowersMod.Get(a).order or 99 end)
+        pcall(function() ob = TowersMod.Get(b).order or 99 end)
+        return oa < ob
+    end)
+    if #tmp > 0 then towerNames = tmp end
 end)
-
-if #tmp > 0 then towerNames = tmp end
-
-end)
-
--- Tower List Log
-print("========== TOWER LIST ==========")
-print("[Tower Log] Total Towers:", #towerNames)
-
-for i, name in ipairs(towerNames) do
-print("[Tower Log] Tower", i, name)
-end
-
-print("================================")
 
 local function handleTowerSeq(seq)
-local done = false
-
-for _, act in ipairs(seq) do
-    if type(act) == "table" then
-
-        if act.action == "floorStarted" and tonumber(act.floor) then
-            currentFloorDisplay = tonumber(act.floor)
-
-            print("[Tower Log] Tower:", currentTowerDisplay)
-            print("[Tower Log] Floor Started:", currentFloorDisplay)
-
-        elseif act.action == "ended" then
-            done = true
-
-            print("[Tower Log] Tower Ended:", currentTowerDisplay)
-
-            break
+    local done = false
+    for _, act in ipairs(seq) do
+        if type(act) == "table" then
+            if act.action == "floorStarted" and tonumber(act.floor) then
+                currentFloorDisplay = tonumber(act.floor)
+            elseif act.action == "ended" then
+                done = true
+                break
+            end
         end
     end
-end
-
-return done
-
+    return done
 end
 
 local function driveTower(step)
     local done, fails = false, 0
-
     while isRunning and not done do
         local ok, seq = pcall(step)
 
-        if not ok then
-            fails = fails + 1
+if not ok then
+    warn("[Tower Log] Step Error Details:", tostring(seq))
+end
 
-        elseif seq == nil then
-            task.wait(0.5)
-
-        elseif type(seq) == "table" then
-            fails = 0
-
+if ok and type(seq) == "table" then
             if #seq > 0 then
+                fails = 0
                 done = handleTowerSeq(seq)
             else
                 task.wait(0.25)
             end
-
         else
             fails = fails + 1
-        end
-
-        if fails >= 8 then
-            done = true
-        elseif fails > 0 then
+            if fails >= 8 then done = true end
             task.wait(1)
         end
     end
 end
 
 task.spawn(function()
-local play = getFn("Towers", "PlayTower")
-local step = getFn("Towers", "CompleteTowerFloor")
-local equipBest = getSig("Towers", "EquipBestTowerTeam")
+    local play = getFn("Towers", "PlayTower")
+    local step = getFn("Towers", "CompleteTowerFloor")
+    local equipBest = getSig("Towers", "EquipBestTowerTeam")
 
-if not play or not step then
-    print("[Tower Log] ERROR: PlayTower or CompleteTowerFloor not found")
-    return
-end
+    if not play or not step then return end
 
-print("[Tower Log] Tower System Started")
-
-while isRunning do
-
-    for _, towerName in ipairs(towerNames) do
-        if not isRunning then break end
-
-        currentTowerDisplay = towerName
-
-        print("========== NEXT TOWER ==========")
-        print("[Tower Log] Selected:", towerName)
-
-        for round = 1, 2 do
+    while isRunning do
+        for _, towerName in ipairs(towerNames) do
             if not isRunning then break end
+            currentTowerDisplay = towerName
+            
+            for round = 1, 2 do
+                if not isRunning then break end
+                currentRoundDisplay = round
+                currentFloorDisplay = 1
 
-            currentRoundDisplay = round
-            currentFloorDisplay = 1
-
-            print("--------------------------------")
-            print("[Tower Log] Starting:", towerName)
-            print("[Tower Log] Round:", round)
-
-            if equipBest then
-                pcall(function()
-                    equipBest:Fire()
-                end)
-
-                task.wait(0.5)
-            end
-
-            local okStart, started = pcall(play, towerName)
-
-            print("[Tower Log] PlayTower Call:", okStart)
-            print("[Tower Log] Start Result:", started)
-
-            if okStart and started then
-                print("[Tower Log] Entering Tower:", towerName)
-                driveTower(step)
-
-            else
-                print("[Tower Log] Start Failed:", towerName)
-
-                local okP, seq = pcall(step)
-
-                if okP and type(seq) == "table" and #seq > 0 then
-                    handleTowerSeq(seq)
-                else
-                    print("[Tower Log] No valid response")
-                    task.wait(3)
+                if equipBest then
+                    pcall(function() equipBest:Fire() end)
+                    task.wait(0.5)
                 end
+
+                local okStart, started = pcall(play, towerName)
+                if okStart and started then
+                    driveTower(step)
+                else
+                    local okP, seq = pcall(step)
+                    if okP and type(seq) == "table" and #seq > 0 then
+                        handleTowerSeq(seq)
+                    else
+                        task.wait(3)
+                    end
+                end
+                task.wait(2)
             end
-
-            print("[Tower Log] Round Finished:", round)
-
-            task.wait(2)
         end
+        task.wait(5)
     end
-
-    print("[Tower Log] All Towers Processed")
-    task.wait(5)
-end
-
-print("[Tower Log] Tower System Stopped")
-
 end)
