@@ -249,11 +249,12 @@ local function activePotionsWithTier()
     
     local entries = (BoostConfig and BoostConfig.entries) or {}
     for name, e in pairs(ae) do
+        local strName = tostring(name)
         if type(e) == "table" and potionLeft(e) > 3 then
-            local cfg = entries[name] or { tier = 1 }
-            local stageGroup = name:gsub("%s+[Tt]ier%s*%d+", ""):gsub("%s+%d+", "")
+            local cfg = entries[strName] or { tier = 1 }
+            local stageGroup = strName:gsub("%s+[Tt]ier%s*%d+", ""):gsub("%s+%d+", "")
             active[stageGroup] = {
-                name = name,
+                name = strName,
                 tier = cfg.tier or 1,
                 remaining = potionLeft(e)
             }
@@ -264,10 +265,17 @@ end
 
 local function potionKeys()
     local out = {}
-    for key, e in pairs(inventory()) do
-        if type(e) == "table" and e.name and (tonumber(e.amount) or 0) >= 1 then
-            local ok, cfg = pcall(function() return EntryRegistry.getEntryConfig(e.name) end)
-            if ok and cfg and cfg.kind == "Boost" then out[e.name] = key end
+    local inv = inventory()
+    for key, e in pairs(inv) do
+        if type(e) == "table" and e.name then
+            local strName = tostring(e.name)
+            local amt = tonumber(e.amount) or 0
+            if amt >= 1 then
+                local ok, cfg = pcall(function() return EntryRegistry.getEntryConfig(strName) end)
+                if (ok and cfg and cfg.kind == "Boost") or strName:lower():find("potion") or strName:lower():find("boost") then
+                    out[strName] = key
+                end
+            end
         end
     end
     return out
@@ -284,7 +292,7 @@ task.spawn(function()
 
             local stagePotions = {}
             for name, key in pairs(have) do
-                local lowerName = name:lower()
+                local lowerName = tostring(name):lower()
                 if lowerName:find("money") or lowerName:find("coin") then
                     local e = entries[name] or { tier = 1 }
                     local stageGroup = name:gsub("%s+[Tt]ier%s*%d+", ""):gsub("%s+%d+", "")
@@ -293,7 +301,7 @@ task.spawn(function()
                     end
                     table.insert(stagePotions[stageGroup], { 
                         name = name, 
-                        tier = e.tier or 1, 
+                        tier = tonumber(e.tier) or 1, 
                         key = key 
                     })
                 end
@@ -305,7 +313,6 @@ task.spawn(function()
             for groupName, pots in pairs(stagePotions) do
                 table.sort(pots, function(a, b) return a.tier > b.tier end)
                 local bestPotion = pots[1]
-
                 local currentActive = activeGroups[groupName]
 
                 if not currentActive or (bestPotion.tier > currentActive.tier) then
