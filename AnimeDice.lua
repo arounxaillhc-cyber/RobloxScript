@@ -31,11 +31,89 @@ local afkConn = LocalPlayer.Idled:Connect(function()
     end)
 end)
 
-TS.TeleportInitFailed:Connect(function(_, _, msg)
-    task.wait(3)
-    pcall(function()
-        TS:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+
+-- Hybrid Auto Rejoin
+local RejoinPlaceId = game.PlaceId
+local RejoinJobId = game.JobId
+
+local RejoinBusy = false
+local Teleporting = false
+
+LocalPlayer.OnTeleport:Connect(function(state)
+    if state == Enum.TeleportState.Started
+    or state == Enum.TeleportState.WaitingForServer
+    or state == Enum.TeleportState.InProgress then
+        Teleporting = true
+
+    elseif state == Enum.TeleportState.Failed then
+        Teleporting = false
+    end
+end)
+
+local function StartRejoin()
+    if RejoinBusy or Teleporting then
+        return
+    end
+
+    RejoinBusy = true
+
+    task.spawn(function()
+        for attempt = 1, 5 do
+            if Teleporting then break end
+
+            warn("[Rejoin] Attempt:", attempt)
+
+            task.wait(3)
+
+            -- 1. Try original server
+            pcall(function()
+                TS:TeleportToPlaceInstance(
+                    RejoinPlaceId,
+                    RejoinJobId,
+                    LocalPlayer
+                )
+            end)
+
+            local deadline = os.clock() + 8
+
+            while os.clock() < deadline and not Teleporting do
+                task.wait(0.25)
+            end
+
+            if Teleporting then break end
+
+            warn("[Rejoin] Original server failed. Trying new server...")
+
+            -- 2. Try a new server
+            pcall(function()
+                TS:Teleport(RejoinPlaceId, LocalPlayer)
+            end)
+
+            deadline = os.clock() + 8
+
+            while os.clock() < deadline and not Teleporting do
+                task.wait(0.25)
+            end
+
+            if Teleporting then break end
+
+            task.wait(5)
+        end
+
+        RejoinBusy = false
     end)
+end
+
+TS.TeleportInitFailed:Connect(function(player, result, msg, placeId)
+    if player ~= LocalPlayer then
+        return
+    end
+
+    Teleporting = false
+
+    warn("[Rejoin] Teleport failed:", tostring(msg))
+
+    StartRejoin()
 end)
 
 local fpsRestore = {}
