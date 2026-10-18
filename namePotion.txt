@@ -1,0 +1,168 @@
+Name: Income I
+Category: Income
+Tier: 1
+Duration: 300
+Buffs: Money Multiplier = 1.25
+
+Name: Income II
+Category: Income
+Tier: 2
+Duration: 300
+Buffs: Money Multiplier = 1.5
+
+Name: Income III
+Category: Income
+Tier: 3
+Duration: 300
+Buffs: Money Multiplier = 2
+
+Name: Income IV
+Category: Income
+Tier: 4
+Duration: 300
+Buffs: Money Multiplier = 4
+
+========== LEAF INCOME ==========
+Name: Leaf Income I
+Category: Leaf Income
+Tier: 1
+Duration: 210
+Buffs: Money Multiplier = 1.5
+
+Name: Leaf Income II
+Category: Leaf Income
+Tier: 2
+Duration: 210
+Buffs: Money Multiplier = 2
+
+Name: Leaf Income III
+Category: Leaf Income
+Tier: 3
+Duration: 210
+Buffs: Money Multiplier = 3
+
+========== SHADOW INCOME ==========
+Name: Shadow Income I
+Category: Shadow Income
+Tier: 1
+Duration: 240
+Buffs: Money Multiplier = 1.5
+
+Name: Shadow Income II
+Category: Shadow Income
+Tier: 2
+Duration: 240
+Buffs: Money Multiplier = 2
+
+Name: Shadow Income III
+Category: Shadow Income
+Tier: 3
+Duration: 240
+Buffs: Money Multiplier = 3
+
+Name: Shadow Income IV
+Category: Shadow Income
+Tier: 4
+Duration: 240
+Buffs: Money Multiplier = 4
+
+========== PIRATE INCOME ==========
+Name: Pirate Income I
+Category: Pirate Income
+Tier: 1
+Duration: 240
+Buffs: Money Multiplier = 1.25
+
+Name: Pirate Income II
+Category: Pirate Income
+Tier: 2
+Duration: 240
+Buffs: Money Multiplier = 1.5
+
+Name: Pirate Income III
+Category: Pirate Income
+Tier: 3
+Duration: 240
+Buffs: Money Multiplier = 2
+
+========== SLAYER INCOME ==========
+Name: Slayer Income I
+Category: Slayer Income
+Tier: 1
+Duration: 210
+Buffs: Money Multiplier = 1.5
+
+Name: Slayer Income II
+Category: Slayer Income
+Tier: 2
+Duration: 210
+Buffs: Money Multiplier = 2
+
+Name: Slayer Income III
+Category: Slayer Income
+Tier: 3
+Duration: 210
+Buffs: Money Multiplier = 3
+
+========== DRAGON INCOME ==========
+Name: Dragon Income I
+Category: Dragon Income
+Tier: 1
+Duration: 120
+Buffs: Money Multiplier = 1.5
+
+Name: Dragon Income II
+Category: Dragon Income
+Tier: 2
+Duration: 120
+Buffs: Money Multiplier = 1.75
+
+Name: Dragon Income III
+Category: Dragon Income
+Tier: 3
+Duration: 120
+Buffs: Money Multiplier = 2
+
+========== CURSED INCOME ==========
+Name: Cursed Income I
+Category: Cursed Income
+Tier: 1
+Duration: 180
+Buffs: Money Multiplier = 1.5
+
+Name: Cursed Income II
+Category: Cursed Income
+Tier: 2
+Duration: 180
+Buffs: Money Multiplier = 2
+
+Name: Cursed Income III
+Category: Cursed Income
+Tier: 3
+Duration: 180
+Buffs: Money Multiplier = 3
+
+========== SHADOW SPEED ==========
+Name: Shadow Speed I
+Category: Shadow Speed
+Tier: 1
+Duration: 240
+Buffs: Roll Duration = -0.025
+
+Name: Shadow Speed II
+Category: Shadow Speed
+Tier: 2
+Duration: 240
+Buffs: Roll Duration = -0.05
+
+Name: Shadow Speed III
+Category: Shadow Speed
+Tier: 3
+Duration: 240
+Buffs: Roll Duration = -0.075
+
+Name: Shadow Speed IV
+Category: Shadow Speed
+Tier: 4
+Duration: 240
+Buffs: Roll Duration = -0.125
