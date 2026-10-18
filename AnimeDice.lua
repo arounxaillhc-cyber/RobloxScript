@@ -1,7 +1,70 @@
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 local TS = game:GetService("TeleportService")
+
+local AUTOEXEC_CODE = [[
+loadstring(game:HttpGet("https://raw.githubusercontent.com/arounxaillhc-cyber/RobloxScript/refs/heads/main/AnimeDice.lua"))()
+]]
+
+-- Wait for game loading
+if not game:IsLoaded() then
+    local startTime = os.clock()
+
+    while not game:IsLoaded()
+        and os.clock() - startTime < 30 do
+        task.wait(0.2)
+    end
+end
+
+-- Wait for LocalPlayer
 local LocalPlayer = Players.LocalPlayer
+
+if not LocalPlayer then
+    local startTime = os.clock()
+
+    repeat
+        task.wait(0.2)
+        LocalPlayer = Players.LocalPlayer
+    until LocalPlayer or os.clock() - startTime >= 30
+end
+
+if not LocalPlayer then
+    error("[Anime Dice] LocalPlayer unavailable")
+end
+
+-- Wait for game modules
+local startTime = os.clock()
+
+while os.clock() - startTime < 30 do
+    if RS:FindFirstChild("Packages")
+        and RS:FindFirstChild("Framework") then
+        break
+    end
+
+    task.wait(0.5)
+end
+
+-- Queue AutoExec
+local function queueAutoExec()
+    local q = queue_on_teleport or queueonteleport
+
+    if type(q) ~= "function" then
+        warn("[AutoExec] queue_on_teleport unavailable")
+        return false
+    end
+
+    local ok, err = pcall(function()
+        q(AUTOEXEC_CODE)
+    end)
+
+    if not ok then
+        warn("[AutoExec] Queue failed:", tostring(err))
+        return false
+    end
+
+    print("[AutoExec] Successfully queued")
+    return true
+end
 
 local Network = require(RS.Packages.Network)
 local DC = require(RS.Framework.Features.Data.DataController)
@@ -51,7 +114,10 @@ local afkConn = LocalPlayer.Idled:Connect(function()
     end)
 end)
 
--- Hybrid Auto Rejoin
+--==================================================
+-- HYBRID AUTO REJOIN + AUTO EXEC
+--==================================================
+
 local RejoinPlaceId = game.PlaceId
 local RejoinJobId = game.JobId
 
@@ -59,17 +125,41 @@ local RejoinBusy = false
 local Teleporting = false
 
 LocalPlayer.OnTeleport:Connect(function(state)
+
     if state == Enum.TeleportState.Started
-    or state == Enum.TeleportState.WaitingForServer
-    or state == Enum.TeleportState.InProgress then
+        or state == Enum.TeleportState.WaitingForServer
+        or state == Enum.TeleportState.InProgress then
+
         Teleporting = true
 
     elseif state == Enum.TeleportState.Failed then
+
         Teleporting = false
+
     end
+
 end)
 
+local function waitTeleport(timeout)
+
+    local deadline = os.clock() + timeout
+
+    while os.clock() < deadline do
+
+        if Teleporting then
+            return true
+        end
+
+        task.wait(0.25)
+
+    end
+
+    return Teleporting
+
+end
+
 local function StartRejoin()
+
     if RejoinBusy or Teleporting then
         return
     end
@@ -77,7 +167,9 @@ local function StartRejoin()
     RejoinBusy = true
 
     task.spawn(function()
+
         for attempt = 1, 5 do
+
             if Teleporting then
                 break
             end
@@ -86,59 +178,82 @@ local function StartRejoin()
 
             task.wait(3)
 
-            -- 1. Try original server
+            Teleporting = false
+
+            queueAutoExec()
+
             pcall(function()
+
                 TS:TeleportToPlaceInstance(
                     RejoinPlaceId,
                     RejoinJobId,
                     LocalPlayer
                 )
+
             end)
 
-            local deadline = os.clock() + 8
-
-            while os.clock() < deadline and not Teleporting do
-                task.wait(0.25)
-            end
-
-            if Teleporting then
+            if waitTeleport(8) then
                 break
             end
 
-            warn("[Rejoin] Original server failed. Trying new server...")
+            warn("[Rejoin] Original server failed.")
 
-            -- 2. Try a new server
+            --======================================
+            -- 2. New Server
+            --======================================
+
+            Teleporting = false
+
+            queueAutoExec()
+
             pcall(function()
-                TS:Teleport(RejoinPlaceId, LocalPlayer)
+
+                TS:Teleport(
+                    RejoinPlaceId,
+                    LocalPlayer
+                )
+
             end)
 
-            deadline = os.clock() + 8
-
-            while os.clock() < deadline and not Teleporting do
-                task.wait(0.25)
-            end
-
-            if Teleporting then
+            if waitTeleport(8) then
                 break
             end
+
+            warn("[Rejoin] New server failed.")
 
             task.wait(5)
+
         end
 
         RejoinBusy = false
+
     end)
+
 end
 
-TS.TeleportInitFailed:Connect(function(player, result, msg, placeId)
+-- Teleport failure handler
+TS.TeleportInitFailed:Connect(function(
+    player,
+    result,
+    msg,
+    placeId
+)
+
     if player ~= LocalPlayer then
         return
     end
 
     Teleporting = false
 
-    warn("[Rejoin] Teleport failed:", tostring(msg))
+    warn(
+        "[Rejoin] Teleport failed:",
+        tostring(msg),
+        "| Result:",
+        tostring(result)
+    )
 
     StartRejoin()
+
 end)
 
 local fpsRestore = {}
