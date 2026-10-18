@@ -32,6 +32,12 @@ if not LocalPlayer then
     error("[Anime Dice] LocalPlayer unavailable")
 end
 
+-- Wait for PlayerGui
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 30)
+
+if not PlayerGui then
+    error("[Anime Dice] PlayerGui unavailable")
+end
 -- Wait for game modules
 local startTime = os.clock()
 
@@ -45,7 +51,13 @@ while os.clock() - startTime < 30 do
 end
 
 -- Queue AutoExec
+local autoExecQueued = false
+
 local function queueAutoExec()
+    if autoExecQueued then
+        return true
+    end
+
     local q = queue_on_teleport or queueonteleport
 
     if type(q) ~= "function" then
@@ -62,9 +74,13 @@ local function queueAutoExec()
         return false
     end
 
+    autoExecQueued = true
     print("[AutoExec] Successfully queued")
+
     return true
 end
+
+queueAutoExec()
 
 local Network = require(RS.Packages.Network)
 local DC = require(RS.Framework.Features.Data.DataController)
@@ -180,16 +196,13 @@ local function StartRejoin()
 
             Teleporting = false
 
-            queueAutoExec()
-
+            -- Original server
             pcall(function()
-
                 TS:TeleportToPlaceInstance(
                     RejoinPlaceId,
                     RejoinJobId,
                     LocalPlayer
                 )
-
             end)
 
             if waitTeleport(8) then
@@ -198,21 +211,14 @@ local function StartRejoin()
 
             warn("[Rejoin] Original server failed.")
 
-            --======================================
-            -- 2. New Server
-            --======================================
-
             Teleporting = false
 
-            queueAutoExec()
-
+            -- New server
             pcall(function()
-
                 TS:Teleport(
                     RejoinPlaceId,
                     LocalPlayer
                 )
-
             end)
 
             if waitTeleport(8) then
@@ -230,7 +236,6 @@ local function StartRejoin()
     end)
 
 end
-
 -- Teleport failure handler
 TS.TeleportInitFailed:Connect(function(
     player,
