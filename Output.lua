@@ -212,7 +212,9 @@ task.spawn(function()
         return
     end
 
-    print("========== POTION CONFIG ==========")
+    local results = {}
+
+    table.insert(results, "========== POTION CONFIG ==========")
 
     for name, data in pairs(cfg.entries) do
         if type(data) == "table" then
@@ -233,16 +235,26 @@ task.spawn(function()
 
             table.sort(buffs)
 
-            print("-----------------------------------")
-            print("Name:     " .. tostring(name))
-            print("Category: " .. tostring(data.category))
-            print("Tier:     " .. tostring(data.tier))
-            print("Duration: " .. tostring(data.duration))
-            print("Buffs:    " .. table.concat(buffs, ", "))
+            table.insert(results, "-----------------------------------")
+            table.insert(results, "Name:     " .. tostring(name))
+            table.insert(results, "Category: " .. tostring(data.category))
+            table.insert(results, "Tier:     " .. tostring(data.tier))
+            table.insert(results, "Duration: " .. tostring(data.duration))
+            table.insert(results, "Buffs:    " .. table.concat(buffs, ", "))
         end
     end
 
-    print("========== SCAN COMPLETE ==========")
+    table.insert(results, "========== SCAN COMPLETE ==========")
+
+    local output = table.concat(results, "\n")
+
+    if type(setclipboard) == "function" then
+        setclipboard(output)
+        print("[Potion Scan] Copied all potion data!")
+    else
+        warn("[Potion Scan] setclipboard is not supported")
+        print(output)
+    end
 end)
 need("MonetConfig", function() return require(RS.Framework.Features.Monetization.MonetizationConfig) end)
 need("QuestConfig", function() return require(RS.Framework.Features.Quests.QuestConfig) end)
