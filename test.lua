@@ -8,38 +8,18 @@ local DC = require(RS.Framework.Features.Data.DataController)
 local PlotConfig = require(RS.Framework.Features.Plot.PlotConfig)
 local TowersMod = require(RS.Framework.Features.Towers.Towers)
 local BoostConfig = require(RS.Framework.Features.Inventory.Kinds.Boost.BoostConfig)
-
-pcall(function()
-    require(RS.Framework.Features.Inventory.EntryTypes)
-end)
-
 local EntryRegistry = require(RS.Framework.Features.Inventory.EntryRegistry)
 
-local function svcComm(svc)
-    return Network.ClientComm.new(RS.Network, false, svc)
-end
-
+local function svcComm(svc) return Network.ClientComm.new(RS.Network, false, svc) end
 local function getSig(svc, name)
-    local ok, s = pcall(function()
-        return svcComm(svc):GetSignal(name)
-    end)
-
-    if ok and s then
-        return s
-    end
-
+    local ok, s = pcall(function() return svcComm(svc):GetSignal(name) end)
+    if ok and s then return s end
     return nil
 end
 
 local function getFn(svc, name)
-    local ok, f = pcall(function()
-        return svcComm(svc):GetFunction(name)
-    end)
-
-    if ok and f then
-        return f
-    end
-
+    local ok, f = pcall(function() return svcComm(svc):GetFunction(name) end)
+    if ok and f then return f end
     return nil
 end
 
@@ -50,6 +30,7 @@ local afkConn = LocalPlayer.Idled:Connect(function()
         vu:ClickButton2(Vector2.new())
     end)
 end)
+
 
 -- Hybrid Auto Rejoin
 local RejoinPlaceId = game.PlaceId
@@ -78,9 +59,7 @@ local function StartRejoin()
 
     task.spawn(function()
         for attempt = 1, 5 do
-            if Teleporting then
-                break
-            end
+            if Teleporting then break end
 
             warn("[Rejoin] Attempt:", attempt)
 
@@ -101,9 +80,7 @@ local function StartRejoin()
                 task.wait(0.25)
             end
 
-            if Teleporting then
-                break
-            end
+            if Teleporting then break end
 
             warn("[Rejoin] Original server failed. Trying new server...")
 
@@ -118,9 +95,7 @@ local function StartRejoin()
                 task.wait(0.25)
             end
 
-            if Teleporting then
-                break
-            end
+            if Teleporting then break end
 
             task.wait(5)
         end
@@ -142,56 +117,25 @@ TS.TeleportInitFailed:Connect(function(player, result, msg, placeId)
 end)
 
 local fpsRestore = {}
-
 local function applyFpsBoost()
     pcall(function()
         local s = getSig("SettingsService", "SetSetting")
-        if s then
-            s:Fire("Performance", true)
-        end
+        if s then s:Fire("Performance", true) end
     end)
-
+    
     pcall(function()
         local L = game:GetService("Lighting")
-
-        table.insert(fpsRestore, {
-            o = L,
-            p = "GlobalShadows",
-            v = L.GlobalShadows
-        })
-
+        table.insert(fpsRestore, { o = L, p = "GlobalShadows", v = L.GlobalShadows })
         L.GlobalShadows = false
-
-        table.insert(fpsRestore, {
-            o = L,
-            p = "FogEnd",
-            v = L.FogEnd
-        })
-
+        table.insert(fpsRestore, { o = L, p = "FogEnd", v = L.FogEnd })
         L.FogEnd = 100000
     end)
 
     pcall(function()
         local T = workspace.Terrain
-
-        table.insert(fpsRestore, {
-            o = T,
-            p = "WaterWaveSize",
-            v = T.WaterWaveSize
-        })
-
-        table.insert(fpsRestore, {
-            o = T,
-            p = "WaterWaveSpeed",
-            v = T.WaterWaveSpeed
-        })
-
-        table.insert(fpsRestore, {
-            o = T,
-            p = "Decoration",
-            v = T.Decoration
-        })
-
+        table.insert(fpsRestore, { o = T, p = "WaterWaveSize", v = T.WaterWaveSize })
+        table.insert(fpsRestore, { o = T, p = "WaterWaveSpeed", v = T.WaterWaveSpeed })
+        table.insert(fpsRestore, { o = T, p = "Decoration", v = T.Decoration })
         T.WaterWaveSize = 0
         T.WaterWaveSpeed = 0
         T.Decoration = false
@@ -199,44 +143,12 @@ local function applyFpsBoost()
 
     for _, inst in ipairs(workspace:GetDescendants()) do
         pcall(function()
-            if inst:IsA("ParticleEmitter")
-            or inst:IsA("Trail")
-            or inst:IsA("Beam")
-            or inst:IsA("Smoke")
-            or inst:IsA("Fire")
-            or inst:IsA("Sparkles") then
-
-                if inst.Enabled then
-                    table.insert(fpsRestore, {
-                        o = inst,
-                        p = "Enabled",
-                        v = true
-                    })
-
-                    inst.Enabled = false
-                end
-
+            if inst:IsA("ParticleEmitter") or inst:IsA("Trail") or inst:IsA("Beam") or inst:IsA("Smoke") or inst:IsA("Fire") or inst:IsA("Sparkles") then
+                if inst.Enabled then table.insert(fpsRestore, { o = inst, p = "Enabled", v = true }) inst.Enabled = false end
             elseif inst:IsA("BasePart") and not inst:IsA("Terrain") then
-                if inst.CastShadow then
-                    table.insert(fpsRestore, {
-                        o = inst,
-                        p = "CastShadow",
-                        v = true
-                    })
-
-                    inst.CastShadow = false
-                end
-
+                if inst.CastShadow then table.insert(fpsRestore, { o = inst, p = "CastShadow", v = true }) inst.CastShadow = false end
             elseif inst:IsA("Decal") or inst:IsA("Texture") then
-                if inst.Transparency < 1 then
-                    table.insert(fpsRestore, {
-                        o = inst,
-                        p = "Transparency",
-                        v = inst.Transparency
-                    })
-
-                    inst.Transparency = 1
-                end
+                if inst.Transparency < 1 then table.insert(fpsRestore, { o = inst, p = "Transparency", v = inst.Transparency }) inst.Transparency = 1 end
             end
         end)
     end
@@ -244,15 +156,11 @@ end
 
 task.spawn(applyFpsBoost)
 
--- Status GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AnimeDiceStatusUI"
 screenGui.ResetOnSpawn = false
-
 pcall(function()
-    screenGui.Parent =
-        LocalPlayer:FindFirstChildOfClass("PlayerGui")
-        or LocalPlayer.PlayerGui
+    screenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer.PlayerGui
 end)
 
 local mainFrame = Instance.new("Frame")
@@ -312,7 +220,7 @@ local potionLabel = Instance.new("TextLabel")
 potionLabel.Size = UDim2.new(1, -20, 0, 20)
 potionLabel.Position = UDim2.new(0, 10, 0, 88)
 potionLabel.BackgroundTransparency = 1
-potionLabel.Text = "Auto Potion: Active"
+potionLabel.Text = "Auto Money Potion: Active"
 potionLabel.TextColor3 = Color3.fromRGB(255, 150, 200)
 potionLabel.TextSize = 13
 potionLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -348,426 +256,150 @@ local currentRoundDisplay = 0
 task.spawn(function()
     while true do
         task.wait(0.5)
-
         pcall(function()
             towerLabel.Text = "Tower: " .. currentTowerDisplay
-
-            floorLabel.Text =
-                "Floor: " .. tostring(currentFloorDisplay)
-                .. " | Round: " .. tostring(currentRoundDisplay)
-                .. "/2"
+            floorLabel.Text = "Floor: " .. tostring(currentFloorDisplay) .. " | Round: " .. tostring(currentRoundDisplay) .. "/2"
         end)
     end
 end)
 
--- Data helpers
-local function rebirth()
-    local ok, v = pcall(function()
-        return DC.Rebirth()
-    end)
-
-    return ok and (tonumber(v) or 0) or 0
+local function rebirth() 
+    local ok, v = pcall(function() return DC.Rebirth() end) 
+    return ok and (tonumber(v) or 0) or 0 
 end
 
-local function slots()
-    local ok, v = pcall(function()
-        return DC.Slots()
-    end)
-
-    return (ok and type(v) == "table") and v or {}
+local function slots() 
+    local ok, v = pcall(function() return DC.Slots() end) 
+    return (ok and type(v) == "table") and v or {} 
 end
 
-local function inventory()
-    local ok, v = pcall(function()
-        return DC.Inventory()
-    end)
-
-    return (ok and type(v) == "table") and v or {}
+local function inventory() 
+    local ok, v = pcall(function() return DC.Inventory() end) 
+    return (ok and type(v) == "table") and v or {} 
 end
 
 local function unlockedSlots()
     local list, s = {}, slots()
     local maxS = 14
-
-    pcall(function()
-        maxS = PlotConfig.GetMaxSlots()
-    end)
-
+    pcall(function() maxS = PlotConfig.GetMaxSlots() end)
     local rb = rebirth()
-
     for i = 1, maxS do
         local req = 0
-
-        pcall(function()
-            req = PlotConfig.GetSlotRebirthRequirement(i)
-        end)
-
-        if rb >= req then
-            table.insert(list, i)
-        end
+        pcall(function() req = PlotConfig.GetSlotRebirthRequirement(i) end)
+        if rb >= req then table.insert(list, i) end
     end
-
     return list, s
 end
 
 local isRunning = true
 
--- Auto Roll
 task.spawn(function()
     local rollSig = getSig("RollService", "SetAutoRoll")
-
     if rollSig then
-        pcall(function()
-            rollSig:Fire(true)
-        end)
+        pcall(function() rollSig:Fire(true) end)
     end
 end)
 
---==================================================
--- AUTO POTION SYSTEM
---==================================================
-
-local POTION_LIST_URL =
-    "https://raw.githubusercontent.com/arounxaillhc-cyber/RobloxScript/refs/heads/main/namePotion.txt"
-
-local PotionCatalog = {}
-local potionBusy = false
-
--- Load namePotion.txt
-local function loadPotionCatalog()
-    local ok, raw = pcall(function()
-        return game:HttpGet(POTION_LIST_URL)
-    end)
-
-    if not ok or type(raw) ~= "string" then
-        warn("[Potion] Failed to load namePotion.txt:", tostring(raw))
-        return false
-    end
-
-    local catalog = {}
-    local current = {}
-
-    local function saveCurrent()
-        if current.Name
-            and current.Category
-            and tonumber(current.Tier) then
-
-            catalog[current.Name] = {
-                category = current.Category,
-                tier = tonumber(current.Tier)
-            }
-        end
-
-        current = {}
-    end
-
-    for line in raw:gmatch("[^\r\n]+") do
-        local key, value =
-            line:match("^%s*([%a]+):%s*(.-)%s*$")
-
-        if key == "Name" then
-            saveCurrent()
-            current.Name = value
-
-        elseif key == "Category" then
-            current.Category = value
-
-        elseif key == "Tier" then
-            current.Tier = value
-        end
-    end
-
-    saveCurrent()
-
-    if next(catalog) == nil then
-        warn("[Potion] No potion data found")
-        return false
-    end
-
-    PotionCatalog = catalog
-
-    local count = 0
-    for _ in pairs(catalog) do
-        count += 1
-    end
-
-    print("[Potion] Loaded", count, "potion entries")
-
-    return true
-end
-
--- Get category and tier
-local function getPotionInfo(name)
-    local listed = PotionCatalog[name]
-
-    if not listed then
-        return nil
-    end
-
-    local cfg = BoostConfig
-        and BoostConfig.entries
-        and BoostConfig.entries[name]
-
-    return {
-        category = (cfg and cfg.category) or listed.category,
-        tier = tonumber(cfg and cfg.tier) or listed.tier
-    }
-end
-
--- Calculate remaining potion duration
 local function potionLeft(entry)
-    if not entry or type(entry) ~= "table" then
-        return 0
-    end
-
-    if type(entry.startedAt) == "number"
-        and type(entry.remaining) == "number" then
-
-        local now = 0
-
-        pcall(function()
-            now = workspace:GetServerTimeNow()
-        end)
-
-        return math.max(
-            0,
-            entry.remaining - math.max(0, now - entry.startedAt)
-        )
-    end
-
-    if type(entry.expiresAt) == "number" then
-        local now = 0
-
-        pcall(function()
-            now = os.time()
-        end)
-
-        return math.max(0, entry.expiresAt - now)
-    end
-
-    if type(entry.remaining) == "number" then
-        return math.max(0, entry.remaining)
-    end
-
+    if not entry or type(entry) ~= "table" then return 0 end
+    if type(entry.remaining) == "number" then return math.max(0, entry.remaining) end
     return 1e9
 end
 
--- Get active potions by category
-local function activePotionsByCategory()
+local function activePotionsWithTier()
     local active = {}
-
-    local ok, activeEntries = pcall(function()
-        return DC.ActiveEntries()
-    end)
-
-    if not ok or type(activeEntries) ~= "table" then
-        return active
-    end
-
-    for name, entry in pairs(activeEntries) do
-        local potionName = tostring(name)
-        local remaining = potionLeft(entry)
-
-        if remaining > 3 then
-            local info = getPotionInfo(potionName)
-
-            if not info then
-                local cfg = BoostConfig
-                    and BoostConfig.entries
-                    and BoostConfig.entries[potionName]
-
-                if cfg then
-                    info = {
-                        category = cfg.category,
-                        tier = tonumber(cfg.tier) or 0
-                    }
-                end
-            end
-
-            if info and info.category then
-                local category = info.category
-                local tier = tonumber(info.tier) or 0
-
-                if not active[category]
-                    or tier > active[category].tier then
-
-                    active[category] = {
-                        name = potionName,
-                        tier = tier,
-                        remaining = remaining
-                    }
-                end
-            end
+    local ok, ae = pcall(function() return DC.ActiveEntries() end)
+    if not ok or type(ae) ~= "table" then return active end
+    
+    local entries = (BoostConfig and BoostConfig.entries) or {}
+    for name, e in pairs(ae) do
+        local strName = tostring(name)
+        if type(e) == "table" and potionLeft(e) > 3 then
+            local cfg = entries[strName] or { tier = 1 }
+            local stageGroup = strName:gsub("%s+[Tt]ier%s*%d+", ""):gsub("%s+%d+", "")
+            active[stageGroup] = {
+                name = strName,
+                tier = cfg.tier or 1,
+                remaining = potionLeft(e)
+            }
         end
     end
-
     return active
 end
 
--- Get owned potions from inventory
-local function getOwnedPotions()
-    local owned = {}
-
-    for key, entry in pairs(inventory()) do
-        if type(entry) == "table"
-            and entry.name
-            and (tonumber(entry.amount) or 0) >= 1 then
-
-            local name = tostring(entry.name)
-            local info = getPotionInfo(name)
-
-            if info then
-                table.insert(owned, {
-                    name = name,
-                    category = info.category,
-                    tier = info.tier,
-                    key = key,
-                    amount = tonumber(entry.amount) or 0
-                })
-            end
-        end
-    end
-
-    return owned
-end
-
--- Select highest owned tier in each category
-local function getBestPotions()
-    local best = {}
-
-    for _, potion in ipairs(getOwnedPotions()) do
-        local category = potion.category
-
-        if not best[category]
-            or potion.tier > best[category].tier then
-
-            best[category] = potion
-        end
-    end
-
-    return best
-end
-
--- Use potion only if it improves active tier
-local function doPotionTick()
-    if potionBusy then
-        return
-    end
-
-    if not BoostConfig or not BoostConfig.entries then
-        return
-    end
-
-    if next(PotionCatalog) == nil then
-        loadPotionCatalog()
-
-        if next(PotionCatalog) == nil then
-            return
-        end
-    end
-
-    potionBusy = true
-
-    local ok, err = pcall(function()
-        local bestPotions = getBestPotions()
-        local activePotions = activePotionsByCategory()
-
-        local boostSig = getSig("BoostService", "Use")
-
-        if not boostSig then
-            return
-        end
-
-        for category, bestPotion in pairs(bestPotions) do
-            local currentActive = activePotions[category]
-
-            local activeTier = currentActive
-                and currentActive.tier
-                or 0
-
-            if bestPotion.tier > activeTier then
-                print(
-                    "[Potion] Using:",
-                    bestPotion.name,
-                    "| Category:",
-                    category,
-                    "| Tier:",
-                    bestPotion.tier,
-                    "| Active Tier:",
-                    activeTier
-                )
-
-                local used = pcall(function()
-                    boostSig:Fire(bestPotion.key)
-                end)
-
-                if used then
-                    task.wait(0.5)
+local function potionKeys()
+    local out = {}
+    local inv = inventory()
+    for key, e in pairs(inv) do
+        if type(e) == "table" and e.name then
+            local strName = tostring(e.name)
+            local amt = tonumber(e.amount) or 0
+            if amt >= 1 then
+                local ok, cfg = pcall(function() return EntryRegistry.getEntryConfig(strName) end)
+                if (ok and cfg and cfg.kind == "Boost") or strName:lower():find("potion") or strName:lower():find("boost") then
+                    out[strName] = key
                 end
-            else
-                print(
-                    "[Potion] Skipped:",
-                    category,
-                    "| Owned Tier:",
-                    bestPotion.tier,
-                    "| Active Tier:",
-                    activeTier
-                )
             end
         end
-    end)
-
-    if not ok then
-        warn("[Potion] Error:", tostring(err))
     end
-
-    potionBusy = false
+    return out
 end
 
--- Start Auto Potion
 task.spawn(function()
-    loadPotionCatalog()
-
     while isRunning do
         task.wait(3)
+        pcall(function()
+            if not BoostConfig or not BoostConfig.entries then return end
+            local entries = BoostConfig.entries
+            local have = potionKeys()
+            local activeGroups = activePotionsWithTier()
 
-        if next(PotionCatalog) == nil then
-            loadPotionCatalog()
-        end
+            local stagePotions = {}
+            for name, key in pairs(have) do
+                local lowerName = tostring(name):lower()
+                if lowerName:find("money") or lowerName:find("coin") then
+                    local e = entries[name] or { tier = 1 }
+                    local stageGroup = name:gsub("%s+[Tt]ier%s*%d+", ""):gsub("%s+%d+", "")
+                    if not stagePotions[stageGroup] then
+                        stagePotions[stageGroup] = {}
+                    end
+                    table.insert(stagePotions[stageGroup], { 
+                        name = name, 
+                        tier = tonumber(e.tier) or 1, 
+                        key = key 
+                    })
+                end
+            end
 
-        doPotionTick()
+            local boostSig = getSig("BoostService", "Use")
+            if not boostSig then return end
+
+            for groupName, pots in pairs(stagePotions) do
+                table.sort(pots, function(a, b) return a.tier > b.tier end)
+                local bestPotion = pots[1]
+                local currentActive = activeGroups[groupName]
+
+                if not currentActive or (bestPotion.tier > currentActive.tier) then
+                    pcall(function() boostSig:Fire(bestPotion.key) end)
+                    task.wait(0.5)
+                end
+            end
+        end)
     end
 end)
 
---==================================================
--- END AUTO POTION SYSTEM
---==================================================
-
--- Auto Collect
 local collectDelay = 20
 
 local function doCollect()
     local sig = getSig("PlotService", "CollectBalance")
-
-    if not sig then
-        return
-    end
-
+    if not sig then return end
     local list, s = unlockedSlots()
-
     for _, slot in ipairs(list) do
-        if not isRunning then
-            break
-        end
-
+        if not isRunning then break end
         local d = s[tostring(slot)]
         local amt = d and (tonumber(d.balance) or 0) or 0
-
         if amt > 0 then
-            pcall(function()
-                sig:Fire(slot)
-            end)
-
+            pcall(function() sig:Fire(slot) end)
             task.wait(0.15)
         end
     end
@@ -780,73 +412,45 @@ task.spawn(function()
     end
 end)
 
--- Tower system
-local towerNames = {
-    "Dragon Tower",
-    "Cursed Tower",
-    "Pirate Tower",
-    "Hidden Leaf Tower",
-    "Infinity Tower"
-}
-
+local towerNames = { "Dragon Tower", "Cursed Tower", "Pirate Tower", "Hidden Leaf Tower", "Infinity Tower" }
 pcall(function()
     local all = TowersMod.GetAll()
     local tmp = {}
-
-    for k in pairs(all) do
-        table.insert(tmp, k)
-    end
-
+    for k in pairs(all) do table.insert(tmp, k) end
     table.sort(tmp, function(a, b)
         local oa, ob = 99, 99
-
-        pcall(function()
-            oa = TowersMod.Get(a).order or 99
-        end)
-
-        pcall(function()
-            ob = TowersMod.Get(b).order or 99
-        end)
-
+        pcall(function() oa = TowersMod.Get(a).order or 99 end)
+        pcall(function() ob = TowersMod.Get(b).order or 99 end)
         return oa < ob
     end)
-
-    if #tmp > 0 then
-        towerNames = tmp
-    end
+    if #tmp > 0 then towerNames = tmp end
 end)
 
 local function handleTowerSeq(seq)
     local done = false
-
     for _, act in ipairs(seq) do
         if type(act) == "table" then
-            if act.action == "floorStarted"
-                and tonumber(act.floor) then
-
+            if act.action == "floorStarted" and tonumber(act.floor) then
                 currentFloorDisplay = tonumber(act.floor)
-
             elseif act.action == "ended" then
                 done = true
                 break
             end
         end
     end
-
     return done
 end
 
 local function driveTower(step)
     local done, fails = false, 0
-
     while isRunning and not done do
         local ok, seq = pcall(step)
 
-        if not ok then
-            warn("[Tower Log] Step Error Details:", tostring(seq))
-        end
+if not ok then
+    warn("[Tower Log] Step Error Details:", tostring(seq))
+end
 
-        if ok and type(seq) == "table" then
+if ok and type(seq) == "table" then
             if #seq > 0 then
                 fails = 0
                 done = handleTowerSeq(seq)
@@ -855,11 +459,7 @@ local function driveTower(step)
             end
         else
             fails = fails + 1
-
-            if fails >= 8 then
-                done = true
-            end
-
+            if fails >= 8 then done = true end
             task.wait(1)
         end
     end
@@ -870,52 +470,37 @@ task.spawn(function()
     local step = getFn("Towers", "CompleteTowerFloor")
     local equipBest = getSig("Towers", "EquipBestTowerTeam")
 
-    if not play or not step then
-        return
-    end
+    if not play or not step then return end
 
     while isRunning do
         for _, towerName in ipairs(towerNames) do
-            if not isRunning then
-                break
-            end
-
+            if not isRunning then break end
             currentTowerDisplay = towerName
-
+            
             for round = 1, 2 do
-                if not isRunning then
-                    break
-                end
-
+                if not isRunning then break end
                 currentRoundDisplay = round
                 currentFloorDisplay = 1
 
                 if equipBest then
-                    pcall(function()
-                        equipBest:Fire()
-                    end)
-
+                    pcall(function() equipBest:Fire() end)
                     task.wait(0.5)
                 end
 
                 local okStart, started = pcall(play, towerName)
-
                 if okStart and started then
                     driveTower(step)
                 else
                     local okP, seq = pcall(step)
-
                     if okP and type(seq) == "table" and #seq > 0 then
                         handleTowerSeq(seq)
                     else
                         task.wait(3)
                     end
                 end
-
                 task.wait(2)
             end
         end
-
         task.wait(5)
     end
 end)
