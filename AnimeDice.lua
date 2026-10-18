@@ -610,9 +610,7 @@ local function loadPotionCatalog()
     for _ in pairs(catalog) do
         count += 1
     end
-
-    print("[Potion] Loaded", count, "potion entries")
-
+    
     return true
 end
 
@@ -806,17 +804,7 @@ local function doPotionTick()
                 or 0
 
             if bestPotion.tier > activeTier then
-                print(
-                    "[Potion] Using:",
-                    bestPotion.name,
-                    "| Category:",
-                    category,
-                    "| Tier:",
-                    bestPotion.tier,
-                    "| Active Tier:",
-                    activeTier
-                )
-
+                
                 local used = pcall(function()
                     boostSig:Fire(bestPotion.key)
                 end)
@@ -825,14 +813,6 @@ local function doPotionTick()
                     task.wait(0.5)
                 end
             else
-                print(
-                    "[Potion] Skipped:",
-                    category,
-                    "| Owned Tier:",
-                    bestPotion.tier,
-                    "| Active Tier:",
-                    activeTier
-                )
             end
         end
     end)
@@ -938,7 +918,7 @@ end)
 
 local function handleTowerSeq(seq)
     local done = false
-
+print("[Tower Debug]", game:GetService("HttpService"):JSONEncode(act))
     for _, act in ipairs(seq) do
         if type(act) == "table" then
             if act.action == "floorStarted"
@@ -946,43 +926,72 @@ local function handleTowerSeq(seq)
 
                 currentFloorDisplay = tonumber(act.floor)
 
-            elseif act.action == "ended" then
-                done = true
-                break
-            end
+            elseif act.action == "ended"
+    or act.action == "failed" then
+
+    print(
+        "[Tower Debug] Tower ended:",
+        act.action,
+        game:GetService("HttpService"):JSONEncode(act)
+    )
+
+    done = true
+    break
+end
         end
     end
 
     return done
 end
 
-local function driveTower(step)
-    local done, fails = false, 0
 
-    while isRunning and not done do
+local function driveTower(step)
+    local fails = 0
+
+    while isRunning do
         local ok, seq = pcall(step)
 
         if not ok then
-            warn("[Tower Log] Step Error Details:", tostring(seq))
-        end
+            fails += 1
 
-        if ok and type(seq) == "table" then
+            warn(
+                "[Tower] Step Error:",
+                tostring(seq),
+                "| Fail:",
+                fails
+            )
+
+            if fails >= 8 then
+                warn("[Tower] Step failed. Retry same round.")
+                return false
+            end
+
+            task.wait(1)
+
+        elseif type(seq) == "table" then
             if #seq > 0 then
                 fails = 0
-                done = handleTowerSeq(seq)
+
+                if handleTowerSeq(seq) then
+                    print("[Tower] Tower completed successfully")
+                    return true
+                end
             else
                 task.wait(0.25)
             end
         else
-            fails = fails + 1
+            fails += 1
 
             if fails >= 8 then
-                done = true
+                warn("[Tower] Invalid sequence. Retry same round.")
+                return false
             end
 
             task.wait(1)
         end
     end
+
+    return false
 end
 
 task.spawn(function()
@@ -991,10 +1000,12 @@ task.spawn(function()
     local equipBest = getSig("Towers", "EquipBestTowerTeam")
 
     if not play or not step then
+        warn("[Tower] Required functions unavailable")
         return
     end
 
     while isRunning do
+
         for _, towerName in ipairs(towerNames) do
             if not isRunning then
                 break
@@ -1010,26 +1021,59 @@ task.spawn(function()
                 currentRoundDisplay = round
                 currentFloorDisplay = 1
 
-                if equipBest then
-                    pcall(function()
-                        equipBest:Fire()
-                    end)
+                print(
+                    "[Tower] Starting:",
+                    towerName,
+                    "| Round:",
+                    round,
+                    "/2"
+                )
 
-                    task.wait(0.5)
-                end
+                local completed = false
 
-                local okStart, started = pcall(play, towerName)
+                while isRunning and not completed do
 
-                if okStart and started then
-                    driveTower(step)
-                else
-                    local okP, seq = pcall(step)
+                    if equipBest then
+                        pcall(function()
+                            equipBest:Fire()
+                        end)
 
-                    if okP and type(seq) == "table" and #seq > 0 then
-                        handleTowerSeq(seq)
+                        task.wait(0.5)
+                    end
+
+                    local okStart, started = pcall(
+                        play,
+                        towerName
+                    )
+
+                    if okStart and started then
+
+                        completed = driveTower(step)
+
                     else
+                        warn(
+                            "[Tower] PlayTower failed:",
+                            towerName,
+                            "| Round:",
+                            round
+                        )
+
                         task.wait(3)
                     end
+
+                    if not completed and isRunning then
+                        task.wait(3)
+                    end
+                end
+
+                if completed then
+                    print(
+                        "[Tower] Completed:",
+                        towerName,
+                        "| Round:",
+                        round,
+                        "/2"
+                    )
                 end
 
                 task.wait(2)
