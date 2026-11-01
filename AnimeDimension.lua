@@ -2767,6 +2767,220 @@ if not shared.AutoLoad then
             _G.Whitescreen = whitescreen
         end)
 
+        do
+            local Players = game:GetService("Players")
+            local Workspace = game:GetService("Workspace")
+            local Lighting = game:GetService("Lighting")
+            local LocalPlayer = Players.LocalPlayer
+            local FpsSection = Misc:CreateSector("FPS Boost", "Right")
+
+            -- สร้างระบบแต่ละฟีเจอร์: จำค่าเดิมไว้ แล้วคืนค่าให้เมื่อปิด
+            local function newFeature(roots, applyFn, extraFn)
+                local feature = {
+                    saved = setmetatable({}, {__mode = "k"}),
+                    connections = {},
+                    token = 0,
+                }
+
+                local function set(inst, prop, value)
+                    local props = feature.saved[inst]
+                    if not props then
+                        props = {}
+                        feature.saved[inst] = props
+                    end
+                    if props[prop] == nil then
+                        local ok, old = pcall(function()
+                            return inst[prop]
+                        end)
+                        if not ok then
+                            return
+                        end
+                        props[prop] = old
+                    end
+                    pcall(function()
+                        inst[prop] = value
+                    end)
+                end
+
+                function feature.disable()
+                    feature.token = feature.token + 1
+                    for _, connection in ipairs(feature.connections) do
+                        connection:Disconnect()
+                    end
+                    feature.connections = {}
+                    for inst, props in pairs(feature.saved) do
+                        for prop, old in pairs(props) do
+                            pcall(function()
+                                inst[prop] = old
+                            end)
+                        end
+                    end
+                    feature.saved = setmetatable({}, {__mode = "k"})
+                end
+
+                function feature.enable()
+                    feature.disable()
+                    local token = feature.token
+                    local function isActive()
+                        return feature.token == token
+                    end
+
+                    if extraFn then
+                        pcall(extraFn, set, isActive)
+                    end
+
+                    if applyFn then
+                        for _, root in ipairs(roots) do
+                            table.insert(feature.connections, root.DescendantAdded:Connect(function(inst)
+                                pcall(applyFn, inst, set)
+                            end))
+                        end
+
+                        task.spawn(function()
+                            local count = 0
+                            for _, root in ipairs(roots) do
+                                for _, inst in ipairs(root:GetDescendants()) do
+                                    if not isActive() then
+                                        return
+                                    end
+                                    pcall(applyFn, inst, set)
+                                    count = count + 1
+                                    if count % 300 == 0 then
+                                        task.wait()
+                                    end
+                                end
+                            end
+                        end)
+                    end
+                end
+
+                function feature.toggle(state)
+                    if state then
+                        feature.enable()
+                    else
+                        feature.disable()
+                    end
+                end
+
+                return feature
+            end
+
+            -- 1) ปิดเอฟเฟกต์ (อนุภาค, แสง, เบลอ, Bloom ฯลฯ) ตัวที่ทำ FPS ตกมากที่สุดตอนใช้สกิล
+            local EffectProps = {
+                ParticleEmitter = "Enabled",
+                Trail = "Enabled",
+                Beam = "Enabled",
+                Fire = "Enabled",
+                Smoke = "Enabled",
+                Sparkles = "Enabled",
+                Explosion = "Visible",
+                PointLight = "Enabled",
+                SpotLight = "Enabled",
+                SurfaceLight = "Enabled",
+                BlurEffect = "Enabled",
+                BloomEffect = "Enabled",
+                ColorCorrectionEffect = "Enabled",
+                SunRaysEffect = "Enabled",
+                DepthOfFieldEffect = "Enabled",
+            }
+
+            local noEffects = newFeature({Workspace, Lighting}, function(inst, set)
+                local prop = EffectProps[inst.ClassName]
+                if prop then
+                    set(inst, prop, false)
+                    if inst.ClassName == "ParticleEmitter" then
+                        set(inst, "Lifetime", NumberRange.new(0))
+                    end
+                end
+            end)
+
+            -- 2) ลดรายละเอียดของแมพ (วัสดุ, เงา, ลายพื้นผิว, โมเดลละเอียด)
+            local simplifyMap = newFeature({Workspace}, function(inst, set)
+                if inst:IsA("Terrain") then
+                    return
+                end
+                if inst:IsA("BasePart") then
+                    set(inst, "Material", Enum.Material.SmoothPlastic)
+                    set(inst, "Reflectance", 0)
+                    set(inst, "CastShadow", false)
+                    if inst:IsA("MeshPart") then
+                        set(inst, "RenderFidelity", Enum.RenderFidelity.Performance)
+                    end
+                elseif inst:IsA("Decal") or inst:IsA("Texture") then
+                    set(inst, "Transparency", 1)
+                end
+            end)
+
+            -- 3) กราฟิกต่ำ (เงา, หมอก, น้ำ, คุณภาพภาพ)
+            local lowGraphics = newFeature({}, nil, function(set)
+                set(Lighting, "GlobalShadows", false)
+                set(Lighting, "FogEnd", 9e9)
+                for _, child in ipairs(Lighting:GetChildren()) do
+                    if child:IsA("Atmosphere") then
+                        set(child, "Density", 0)
+                        set(child, "Haze", 0)
+                    end
+                end
+                local terrain = Workspace:FindFirstChildOfClass("Terrain")
+                if terrain then
+                    set(terrain, "WaterWaveSize", 0)
+                    set(terrain, "WaterWaveSpeed", 0)
+                    set(terrain, "WaterReflectance", 0)
+                    set(terrain, "WaterTransparency", 1)
+                    pcall(function()
+                        sethiddenproperty(terrain, "Decoration", false)
+                    end)
+                end
+                pcall(function()
+                    set(settings().Rendering, "QualityLevel", Enum.QualityLevel.Level01)
+                end)
+            end)
+
+            -- 4) ซ่อนผู้เล่นคนอื่น
+            local hidePlayers = newFeature({}, nil, function(set, isActive)
+                task.spawn(function()
+                    while isActive() do
+                        for _, player in ipairs(Players:GetPlayers()) do
+                            local character = player ~= LocalPlayer and player.Character
+                            if character then
+                                for _, inst in ipairs(character:GetDescendants()) do
+                                    if (inst:IsA("BasePart") or inst:IsA("Decal")) and inst.Transparency ~= 1 then
+                                        set(inst, "Transparency", 1)
+                                    elseif inst.ClassName == "ParticleEmitter" and inst.Enabled then
+                                        set(inst, "Enabled", false)
+                                    end
+                                end
+                            end
+                        end
+                        task.wait(1)
+                    end
+                end)
+            end)
+
+            FpsSection:AddToggle("NoEffects(Particle,Light,Blur)", false, function(state)
+                noEffects.toggle(state)
+            end)
+
+            FpsSection:AddToggle("SimplifyMap(Texture,Shadow)", false, function(state)
+                simplifyMap.toggle(state)
+            end)
+
+            FpsSection:AddToggle("LowGraphics(Shadow,Fog,Water)", false, function(state)
+                lowGraphics.toggle(state)
+            end)
+
+            FpsSection:AddToggle("HideOtherPlayers", false, function(state)
+                hidePlayers.toggle(state)
+            end)
+
+            FpsSection:AddTextbox("FPSCap(OnlyNumber)", "60", function(value)
+                local cap = tonumber(value)
+                if cap and cap >= 1 and setfpscap then
+                    pcall(setfpscap, cap)
+                end
+            end)
+        end
+
         Section2:AddButton("infiniteyield", function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
         end)
